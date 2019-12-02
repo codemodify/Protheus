@@ -1,0 +1,41 @@
+
+Protheus Video Hardware Abstraction
+Relies on Wayland which relies on KMS.
+
+// KMS -> https://wiki.archlinux.org/index.php/Kernel_mode_setting
+// ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~
+- Kernel sets the GPU video mode
+- Install
+    => always disable any "vga=" options in your bootloader
+    => always disable any "video=" lines that enable a framebuffer
+    => always disable any other framebuffer like "uvesafb"
+
+- Intel
+    o "intel" - KMS automatically
+
+- AMD
+    o "ati" - KMS automatically
+    o "amdgpu" - KMS automatically
+    o "AMD Catalyst" - no KMS support, must be replaced by "ATI"
+
+- NVIDIA
+    o "nouveau" - KMS automatically
+    o "nv" - KMS manually (supports it since 364.12 (or 364.16 ??))
+        => Does not provide an "fbdev" driver for the high-resolution
+           console for the kernel compiled-in "vesafb" module
+        => Supports the kernel compiled-in "efifb" module on EFI systems
+        => Add the "nvidia-drm.modeset=1" as Kernel Parameter (check
+           /System/Kernel/Docs.text)
+        => Add "nvidia", "nvidia_modeset", "nvidia_uvm", "nvidia_drm"
+           to Kernel InitRAMFS Module (check /System/Kernel/Docs.text)
+           
+           
+To load KMS in from "/etc/mkinitcpio.conf" add these  MODULES="... i915 ..."
+- Intel  - i915 (add "intel_agp" before i915 to suppress the ACPI errors)
+- AMD    - radeon/amdgpu
+- NVIDIA - nouveau
+
+If you are using a custom EDID file (not applicable for the built-in resolutions) 
+you should embed it into initramfs as well:
+/etc/mkinitcpio.conf
+FILES="/usr/lib/firmware/edid/your_edid.bin"

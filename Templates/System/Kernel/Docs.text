@@ -1,0 +1,82 @@
+
+#Parameters -> https://wiki.archlinux.org/index.php/Kernel_parameters
+~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~
+o At build step
+o At boot step
+o At runtime using "sysctl" on files in "/proc" and "/sys"
+
+
+#InitRAMFS -> https://wiki.archlinux.org/index.php/Mkinitcpio
+~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~
+"mkinitcpio" is a Bash script used to create an initial ramdisk - a very 
+small environment (early userspace) which loads various kernel modules 
+and sets up necessary things before handing over control to "init".
+This makes it possible to have
+- encrypted root file systems and root file systems on a software RAID array.
+- easy extension with custom hooks
+- autodetection at runtime
+- many other features
+
+Traditionally Kernel was doing all the hardware detection and initialization
+early in the boot process before mounting the root file system and passing 
+control to init. As technology advances and things get more complex and for
+the Kernel to be able to detect all the hardware at boot
+- and because not all the drivers can be compiled into the Kernel
+- and the root file system may be on a SCSI/SATA/USB
+- and the root file system may be encrypted or compressed on a software RAID 
+  array or a logical volume group
+
+Thus tasks have been offloaded into ramdisk with custom drivers and let it manage.
+
+"mkinitcpio" is a modular tool for building an initramfs CPIO image, advantages include:
+- use of BusyBox
+- support for udev for hardware auto-detection at runtime => not loading unnecessary drivers.
+- extendable hook-based init script, which supports custom hooks
+- support for "LVM2", "dm-crypt" (legacy + LUKS volumes), "mdadm"
+- support for "swsusp", "suspend2" for resuming and booting from USB mass storage devices.
+- allows many features to be configured in the kernel command => no needing to rebuild the image.
+
+#InitRAMFS Install -> https://wiki.archlinux.org/index.php/Mkinitcpio#Installation
+~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~
+"mkinitcpio -p linux" - takes the preset "linux" (the preset configuraiton file is
+at "/etc/mkinitcpio.d/linux.preset") and generates two images: 
+"/boot/initramfs-linux.img" 
+    autodetect hook detects required modules and tailors the 
+    image for specific hardware, shrinking the initramfs.
+
+"/boot/initramfs-linux-fallback.img"
+    no autodetect hook, including a full range of modules,
+    bigger initramfs.
+
+The BootLoader will point to one of the images. (check /System/Boot/Docs.text)
+A preset is a predefined definition of how to create an initramfs image instead 
+of specifying the configuration file and output file every time.
+
+#InitRAMFS Custom
+~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~
+"mkinitcpio -c /etc/mkinitcpio-custom.conf -g /boot/linux-custom.img"
+
+#InitRAMFS Config
+~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~
+/etc/mkinitcpio.conf - main config file
+/etc/mkinitcpio.d/* - preset definitions
+"lvm2", "mdadm", "encrypt" - are NOT enabled by default
+
+MODULES     - Kernel modules to be loaded before any boot hooks are run.
+BINARIES    - Additional binaries to be included in the initramfs image.
+FILES       - Additional files to be included in the initramfs image.
+HOOKS       - Hooks are scripts that execute in the initial ramdisk.
+COMPRESSION - Used to compress the initramfs image.
+COMPRESSION_OPTIONS
+    Extra arguments to pass to the COMPRESSION program.
+    Usage of this setting is strongly discouraged. 
+    mkinitcpio will handle special requirements for compressors 
+    (e.g. passing --check=crc32 to xz), and misusage can easily 
+    lead to an unbootable system.
+
+#InitRAMFS Modules -> https://wiki.archlinux.org/index.php/Mkinitcpio#MODULES
+~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~ ~~~~
+Specifies modules to load before anything else is done.
+Modules suffixed with a "?" will not throw errors if they are not found.
+This might be useful for custom kernels that compile in modules which are 
+listed explicitly in a hook or config file.
